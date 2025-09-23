@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { CloudRain, Sun, Cloud, CloudSnow, CloudLightning, Wind } from 'lucide-svelte';
+	import { CloudRain, Sun, Moon, Cloud, CloudSnow, CloudLightning, Wind } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { fly } from 'svelte/transition';
 	import { tweened } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
 	import { browser } from '$app/environment';
 	import Cookies from 'js-cookie';
+	import { onMount } from 'svelte';
+	import { format } from 'timeago.js';
 
 	// Nairobi coordinates for comparison
 	const NAIROBI_LAT = -1.286389;
@@ -145,6 +147,8 @@
 		year: '2-digit'
 	});
 
+	$: isNight = date.getHours() >= 18 || date.getHours() < 6;
+
 	// Weather icon mapping
 	const weatherIcons = {
 		Thunderstorm: CloudLightning,
@@ -165,8 +169,29 @@
 	};
 	$: weatherCondition = weather ? weather.weather[0].main : 'Clear';
 	$: WeatherIcon = weather
-		? weatherIcons[weatherCondition as keyof typeof weatherIcons] || Cloud
+		? weatherCondition === 'Clear' && isNight
+			? Moon
+			: weatherIcons[weatherCondition as keyof typeof weatherIcons] || Cloud
 		: Cloud;
+
+	$: if (weather) {
+		const condition = weather.weather[0].main.toLowerCase();
+		let newBg: string;
+		if (condition === 'clear') {
+			newBg = isNight ? '/clear_night.jpg' : '/clear_day.jpeg';
+		} else if (condition === 'clouds') {
+			newBg = !isNight ? '/clouds_day.jpg' : '/rain_night.jpg';
+		} else if (['rain', 'drizzle', 'thunderstorm'].includes(condition)) {
+			newBg = isNight ? '/rain_night.jpg' : '/rain_afternoon.jpg';
+		} else {
+			newBg = isNight ? '/rain_night.jpg' : '/rain_afternoon.jpg';
+		}
+		bgToUse = newBg;
+	}
+
+	onMount(() => {
+		console.log(weather);
+	});
 </script>
 
 <main
@@ -174,17 +199,23 @@
 	style="background-image: url({bgToUse}); background-size: cover; background-position: center;"
 >
 	<div
-		class="relative flex min-h-screen w-full bg-[#00000010] p-6 backdrop-blur-xl sm:backdrop-blur-lg"
+		class="relative flex min-h-screen w-full flex-col bg-[#00000010] p-6 backdrop-blur-xl sm:flex-row sm:backdrop-blur-lg"
 	>
-		<div class="flex w-full flex-col justify-start sm:justify-between">
+		<div class="mx-auto my-3 flex w-full flex-col justify-start sm:justify-between">
 			<h1 class="font-bold">Angather</h1>
 			{#if weather}
-				<aside class="flex items-center gap-6">
-					<h2 class="text-7xl">{Math.round($temperature)}°</h2>
+				<aside class="mt-6 flex items-center gap-6 sm:mt-0">
+					<h2 class="text-xl sm:text-7xl">{Math.round($temperature)}° C</h2>
 					<article class="flex h-full flex-col items-center justify-between">
 						<h3 class="text-2xl sm:text-5xl">{weather.name}</h3>
 						<div class="flex items-center gap-1 text-xs">
-							<p>{time}</p>
+							<p>
+								{new Date().toLocaleTimeString('en-US', {
+									hour: '2-digit',
+									minute: '2-digit',
+									hour12: false
+								})}
+							</p>
 							<p>{day}</p>
 							<p>{fullDate}</p>
 						</div>
@@ -200,5 +231,38 @@
 				<p>Loading weather data...</p>
 			{/if}
 		</div>
+		<aside
+			class="my-auto h-full w-full rounded-xl border border-[#171717] bg-[#171717aa] p-6 text-white shadow-lg sm:w-2/3"
+		>
+			<input
+				type="text"
+				class="mb-6 w-full rounded border-b border-cyan-500/50 bg-transparent pb-2 opacity-60 transition outline-none placeholder:italic placeholder:opacity-50 focus:opacity-90"
+				placeholder="Search for a different place..."
+			/>
+			<h3 class="mb-4 text-xl font-bold sm:text-3xl">Details</h3>
+			{#if weather}
+				<ul class="ml-1 flex flex-col gap-2 opacity-80">
+					<li class="flex items-center gap-4">
+						<span class="font-semibold">Feels Like:</span>
+						<p>{weather.main.feels_like}° C</p>
+					</li>
+					<li class="flex items-center gap-4">
+						<span class="font-semibold">Humidity:</span>
+						<p>{weather.main.humidity} %</p>
+					</li>
+					<li class="flex items-center gap-4">
+						<span class="font-semibold">Pressure:</span>
+						<p>{weather.main.pressure} hPa</p>
+					</li>
+					<li class="flex items-center gap-4">
+						<span class="font-semibold">Wind Speed:</span>
+						<p>{weather.wind.speed} m/s</p>
+					</li>
+				</ul>
+				<p class="mt-6 ml-auto w-fit text-right text-xs opacity-30">Last updated {format(time)}</p>
+			{:else}
+				<p class="opacity-70">Missing weather details</p>
+			{/if}
+		</aside>
 	</div>
 </main>

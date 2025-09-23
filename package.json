@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "js-cookie": "^3.0.5",
-    "lucide-svelte": "^0.541.0"
+    "lucide-svelte": "^0.541.0",
+    "timeago.js": "^4.0.2"
   }
 }

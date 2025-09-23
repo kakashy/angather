@@ -1,7 +1,12 @@
+@import url("https://fonts.googleapis.com/css2?family=Jost:wght@400;700&display=swap");
 @import "tailwindcss";
 
 @import "tw-animate-css";
 
+@theme {
+  --font-jost: "Jost", sans-serif;
+}
+
 body {
-  @apply bg-[#111] text-[#efefea] font-sans;
+  @apply bg-[#111] text-[#efefea] font-jost;
 }
